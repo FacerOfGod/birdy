@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bob the Helper</title>
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' file: data: https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://tfhub.dev https://storage.googleapis.com https://www.kaggle.com ws://localhost:8765;">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js and MoveNet (Posture) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+    <!-- MediaPipe Hands (Gestures) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Posture & Gesture AI</h1>
+            <div class="status-group">
+                <div id="connection-status" class="status-badge">Initializing...</div>
+                <div id="ws-status" class="status-badge">WS: Disconnected</div>
+            </div>
+        </header>
+
+        <main>
+            <div class="video-container">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="output"></canvas>
+
+                <!-- Virtual Cursor Overlay -->
+                <div id="virtual-cursor" class="virtual-cursor hidden"></div>
+
+                <div id="alert-overlay" class="alert-overlay hidden">
+                    <span class="alert-icon">⚠️</span>
+                    <span id="alert-message">Bad posture detected!</span>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <!-- Posture Card -->
+                <div class="card posture-card">
+                    <div class="card-header">
+                        <h2>Current Posture</h2>
+                        <button id="calibrate-btn" class="btn-primary">Calibrate</button>
+                    </div>
+                    <div id="posture-status" class="status-text">Uncalibrated</div>
+                    <div class="confidence-meter">
+                        <div id="confidence-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Gesture Card -->
+                <div class="card gesture-card">
+                    <h2>Gesture Control</h2>
+                    <div id="gesture-status" class="status-text">None</div>
+                    <div class="gesture-details">
+                        <span id="gesture-action" class="badge">No Action</span>
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="card stats-card">
+                    <h2>Sitting Time</h2>
+                    <div id="timer" class="timer-display">00:00:00</div>
+                    <p id="timer-message" class="timer-subtext">Keep up the good work!</p>
+                </div>
+
+                <!-- Log Card -->
+                <div class="card log-card">
+                    <h2>Command Log</h2>
+                    <div id="command-log" class="log-container">
+                        <div class="log-entry">System ready...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by an idiot</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

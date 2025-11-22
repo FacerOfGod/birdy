@@ -1,0 +1,21 @@
+{
+  "name": "posture-ai-desktop",
+  "version": "1.0.0",
+  "description": "Posture Detection and Gesture Control Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "electron",
+    "posture",
+    "ai",
+    "tensorflow",
+    "mediapipe"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
