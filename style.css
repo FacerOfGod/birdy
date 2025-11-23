@@ -1170,3 +1170,7 @@ body.compact-mode .title-bar {
     z-index: 200;
     animation: fadeIn 0.3s ease;
 }
+/* COMPACT MODE VERTICAL OVERRIDES */
+body.compact-mode main { flex-direction: column !important; }
+body.compact-mode .video-container { width: 100% !important; height: auto !important; flex: 1 1 auto !important; }
+body.compact-mode .compact-controls { width: 100% !important; height: auto !important; border-left: none !important; border-top: 1px solid rgba(255, 255, 255, 0.1) !important; padding-bottom: 10px !important; }

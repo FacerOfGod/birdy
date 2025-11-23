@@ -36,7 +36,7 @@ if (!gotTheLock) {
 function createWindow() {
     // Create a proper icon for the app
     const appIcon = nativeImage.createFromPath(path.join(__dirname, 'images', 'logo.png'));
-    
+
     // If icon file doesn't exist, create a fallback
     if (appIcon.isEmpty()) {
         console.warn('App icon not found at images/logo.png, using fallback');
@@ -138,9 +138,9 @@ function createWindow() {
 
             // Note: Windows 11 has limited support for notification actions
             // The actions array may not work consistently across Windows versions
-            
+
             notification.show();
-            
+
             // Also log to console for debugging
             console.log('Notification sent:', message);
         } else {
@@ -161,8 +161,8 @@ function createWindow() {
         isCompactMode = compact;
 
         if (compact) {
-            // Compact mode: very horizontal window, always on top
-            mainWindow.setSize(700, 300);
+            // Compact mode: vertical widget style, always on top
+            mainWindow.setSize(320, 480);
             mainWindow.setAlwaysOnTop(true);
             mainWindow.center();
         } else {
@@ -209,8 +209,8 @@ function createTray() {
     tray = new Tray(trayIcon);
 
     const contextMenu = Menu.buildFromTemplate([
-        { 
-            label: 'Show Birdy', 
+        {
+            label: 'Show Birdy',
             click: () => {
                 mainWindow.show();
                 mainWindow.focus();
@@ -218,7 +218,7 @@ function createTray() {
         },
         { type: 'separator' },
         {
-            label: 'Quit Birdy', 
+            label: 'Quit Birdy',
             click: () => {
                 app.isQuitting = true;
                 app.quit();
