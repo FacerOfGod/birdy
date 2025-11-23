@@ -40,5 +40,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Birdy"
     }
+  },
+  "dependencies": {
+    "electron": "^39.2.3"
   }
 }
