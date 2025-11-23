@@ -4,30 +4,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bob the Helper</title>
+    <title>Birdy</title>
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' file: data: https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://tfhub.dev https://storage.googleapis.com https://www.kaggle.com ws://localhost:8765;">
+        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' file: data: https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://tfhub.dev https://storage.googleapis.com https://www.kaggle.com ws://localhost:8765; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;">
 
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
 
     <!-- TensorFlow.js and MoveNet (Posture) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection" crossorigin="anonymous"></script>
 
     <!-- MediaPipe Hands (Gestures) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
 </head>
 
 <body>
+    <!-- Custom Title Bar -->
+    <div class="title-bar">
+        <div class="title-drag-region">
+            <div class="app-icon"><img src="images/logo.png" alt="Logo of Birdy which is a little bird" />
+
+            </div>
+            <span class="app-title">Birdy</span>
+        </div>
+        <div class="window-controls">
+            <button id="btn-compact" class="control-btn" title="Toggle Compact Mode">⤢</button>
+            <button id="btn-minimize" class="control-btn" title="Minimize">─</button>
+            <button id="btn-maximize" class="control-btn" title="Maximize">□</button>
+            <button id="btn-close" class="control-btn close-btn" title="Close">✕</button>
+        </div>
+    </div>
+
     <div class="app-container">
         <header>
-            <h1>Posture & Gesture AI</h1>
+            <div class="header-content">
+                <h1>Dashboard</h1>
+                <button id="btn-settings" class="btn-icon" title="Settings">⚙️</button>
+            </div>
             <div class="status-group">
                 <div id="connection-status" class="status-badge">Initializing...</div>
                 <div id="ws-status" class="status-badge">WS: Disconnected</div>
@@ -42,9 +62,46 @@
                 <!-- Virtual Cursor Overlay -->
                 <div id="virtual-cursor" class="virtual-cursor hidden"></div>
 
+                <!-- Enhanced Notification Overlay -->
                 <div id="alert-overlay" class="alert-overlay hidden">
-                    <span class="alert-icon">⚠️</span>
-                    <span id="alert-message">Bad posture detected!</span>
+                    <div class="alert-content">
+                        <span class="alert-icon">⚠️</span>
+                        <h3 id="alert-title">Bad Posture!</h3>
+                        <p id="alert-message">Please sit up straight.</p>
+                        <div class="alert-actions">
+                            <button id="btn-recalibrate" class="btn-action btn-primary">Recalibrate</button>
+                            <button id="btn-snooze" class="btn-action btn-secondary">Snooze (15m)</button>
+                            <button id="btn-dismiss" class="btn-action btn-danger">Dismiss</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compact Mode Controls - MOVED OUTSIDE video-container -->
+            <div class="compact-controls hidden">
+                <div class="compact-right-panel">
+                    <div class="compact-header">
+                        <div id="compact-timer" class="compact-timer">00:00:00</div>
+                    </div>
+                    <div class="compact-toggles">
+                        <label class="compact-toggle">
+                            <input type="checkbox" id="compact-toggle-swipe" checked>
+                            <span>Swipe</span>
+                        </label>
+                        <label class="compact-toggle">
+                            <input type="checkbox" id="compact-toggle-volume" checked>
+                            <span>Volume</span>
+                        </label>
+                        <label class="compact-toggle">
+                            <input type="checkbox" id="compact-toggle-tap" checked>
+                            <span>Tap</span>
+                        </label>
+                        <label class="compact-toggle">
+                            <input type="checkbox" id="compact-toggle-taskview" checked>
+                            <span>Task View</span>
+                        </label>
+                    </div>
+                    <button id="compact-calibrate-btn" class="compact-calibrate-btn">📏 Calibrate</button>
                 </div>
             </div>
 
@@ -72,7 +129,13 @@
 
                 <!-- Stats Card -->
                 <div class="card stats-card">
-                    <h2>Sitting Time</h2>
+                    <div class="card-header">
+                        <h2>Sitting Time</h2>
+                        <div class="timer-controls">
+                            <button id="start-timer-btn" class="btn-timer btn-success">▶ Start</button>
+                            <button id="stop-timer-btn" class="btn-timer btn-danger">⏸ Stop</button>
+                        </div>
+                    </div>
                     <div id="timer" class="timer-display">00:00:00</div>
                     <p id="timer-message" class="timer-subtext">Keep up the good work!</p>
                 </div>
@@ -86,10 +149,46 @@
                 </div>
             </div>
         </main>
+    </div>
 
-        <footer>
-            <p>Powered by an idiot</p>
-        </footer>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="btn-close-settings" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>Swipe Gestures</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-swipe" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>Volume Control</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-volume" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>Tap/Click</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-tap" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>Task View Gesture</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-taskview" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
