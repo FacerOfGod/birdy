@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birdy - Loading</title>
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' 'unsafe-inline' file: data:; script-src 'self' 'unsafe-inline';">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: transparent !important;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .window-content {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffffff 19%, #6bb3fc 100%);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            /* Optional: adds a subtle shadow to define the edge */
+        }
+
+        /* Animated background particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .particle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -150px;
+            left: -150px;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -100px;
+            right: -100px;
+            animation-delay: 5s;
+        }
+
+        .particle:nth-child(3) {
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            right: -125px;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -30px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+        }
+
+        .splash-container {
+            text-align: center;
+            z-index: 10;
+            animation: containerFadeIn 0.8s ease-out;
+        }
+
+        @keyframes containerFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-container {
+            margin-bottom: 40px;
+            animation: logoFadeIn 2s ease-out;
+            position: relative;
+            display: inline-block;
+        }
+
+        @keyframes logoFadeIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            filter: drop-shadow(0 10px 30px rgba(59, 130, 246, 0.3));
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Ripple effect */
+        .ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 2px solid rgba(59, 130, 246, 0.6);
+            animation: ripple 4s infinite ease-out;
+            z-index: 1;
+        }
+
+        .ripple:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .ripple:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        .ripple:nth-child(4) {
+            animation-delay: 1.5s;
+        }
+
+        @keyframes ripple {
+            0% {
+                width: 120px;
+                height: 120px;
+                opacity: 1;
+            }
+
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+                border-width: 1px;
+            }
+        }
+
+        .app-name {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-top: 40px;
+            letter-spacing: -1px;
+            animation: nameFadeIn 1.5s ease-out 0.5s both;
+        }
+
+        @keyframes nameFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tagline-container {
+            margin-top: 30px;
+            min-height: 60px;
+        }
+
+        .tagline {
+            font-size: 24px;
+            font-weight: 400;
+            color: #3b82f6;
+            font-style: italic;
+            opacity: 0;
+            animation: taglineFadeIn 0.5s ease-out 2s forwards;
+        }
+
+        @keyframes taglineFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 28px;
+            background-color: #3b82f6;
+            margin-left: 2px;
+            animation: blink 0.7s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+
+            0%,
+            49% {
+                opacity: 1;
+            }
+
+            50%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .loading-dots {
+            margin-top: 50px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            opacity: 0;
+            animation: dotsFadeIn 0.5s ease-out 3.5s forwards;
+        }
+
+        @keyframes dotsFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            40% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .version {
+            position: absolute;
+            bottom: 30px;
+            font-size: 14px;
+            color: #000000;
+            opacity: 0;
+            animation: versionFadeIn 0.5s ease-out 4s forwards;
+        }
+
+        @keyframes versionFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="window-content">
+        <!-- Animated background particles -->
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+
+        <div class="splash-container">
+            <div class="logo-container">
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <img src="assets/images/logo.png" alt="Birdy Logo" class="logo" id="logo">
+            </div>
+
+            <h1 class="app-name">Birdy</h1>
+
+            <div class="tagline-container">
+                <p class="tagline">
+                    <span id="typewriter"></span><span class="cursor" id="cursor"></span>
+                </p>
+            </div>
+
+            <div class="loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <div class="version">v1.0.0</div>
+    </div>
+
+    <script>
+        // Typewriter effect
+        const text = "Because your back deserves an upgrade";
+        const typewriterElement = document.getElementById('typewriter');
+        const cursorElement = document.getElementById('cursor');
+        let charIndex = 0;
+
+        function typeWriter() {
+            if (charIndex < text.length) {
+                typewriterElement.textContent += text.charAt(charIndex);
+                charIndex++;
+                setTimeout(typeWriter, 80); // Typing speed
+            } else {
+                // Hide cursor after typing is complete
+                setTimeout(() => {
+                    cursorElement.style.display = 'none';
+                }, 500);
+            }
+        }
+
+        // Start typewriter after 2.5 seconds (after tagline fades in)
+        setTimeout(typeWriter, 2500);
+
+        // Redirect to main app after splash screen (6.5 seconds total - 1 second longer)
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 6500);
+    </script>
+</body>
+
+</html>

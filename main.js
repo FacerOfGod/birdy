@@ -1,21 +1,106 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
+// main.js
+const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, screen } = require('electron');
 const path = require('path');
+const { execFile } = require('child_process');
 
+// Constants
+const APP_CONFIG = {
+    name: 'Birdy',
+    appUserModelId: 'com.birdy.app',
+    version: '1.0.0'
+};
+
+const WINDOW_CONFIG = {
+    normal: {
+        width: 1280,
+        height: 800,
+        minWidth: 800,
+        minHeight: 600
+    },
+    compact: {
+        width: 220,
+        height: 480,
+        minWidth: 220,
+        minHeight: 400
+    },
+    splash: {
+        width: 500,
+        height: 700
+    }
+};
+
+const TIMING_CONFIG = {
+    splashDelay: 6500
+};
+
+const PATHS = {
+    images: {
+        logo: 'images/logo.png'
+    },
+    server: '/dist/server.exe'
+};
+
+const TRAY_CONFIG = {
+    iconSize: { width: 16, height: 16 }
+};
+
+const NOTIFICATION_CONFIG = {
+    title: 'Birdy - Posture Alert',
+    balloon: {
+        title: 'Birdy',
+        content: 'App is running in the background.'
+    }
+};
+
+const SVG_ICONS = {
+    fallbackApp: `
+    <svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="28" fill="#3b82f6"/>
+      <text x="32" y="40" text-anchor="middle" fill="white" font-family="Arial" font-size="20">B</text>
+    </svg>
+  `,
+    fallbackNotification: `
+    <svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="30" fill="#3b82f6"/>
+      <text x="32" y="42" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">B</text>
+    </svg>
+  `,
+    fallbackTray: `
+    <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="8" cy="8" r="7" fill="#3b82f6"/>
+      <text x="8" y="11" text-anchor="middle" fill="white" font-family="Arial" font-size="8" font-weight="bold">B</text>
+    </svg>
+  `
+};
+
+// App state
+let serverProcess;
 let mainWindow;
 let tray;
+let isCompactMode = false;
+let normalBounds = {
+    width: WINDOW_CONFIG.normal.width,
+    height: WINDOW_CONFIG.normal.height,
+    x: undefined,
+    y: undefined
+};
+let compactBounds = {
+    width: WINDOW_CONFIG.compact.width,
+    height: WINDOW_CONFIG.compact.height,
+    x: undefined,
+    y: undefined
+};
 
-// Set app name and metadata for Windows notifications
-app.setAppUserModelId('com.birdy.app');
-app.name = 'Birdy';
+// App initialization
+app.setAppUserModelId(APP_CONFIG.appUserModelId);
+app.name = APP_CONFIG.name;
 
-// Prevent multiple instances
+// Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
-
 if (!gotTheLock) {
     app.quit();
 } else {
     app.on('second-instance', (event, commandLine, workingDirectory) => {
-        // Someone tried to run a second instance, we should focus our window.
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             if (!mainWindow.isVisible()) mainWindow.show();
@@ -24,6 +109,7 @@ if (!gotTheLock) {
     });
 
     app.whenReady().then(() => {
+        startPythonServer();
         createWindow();
         createTray();
 
@@ -33,51 +119,144 @@ if (!gotTheLock) {
     });
 }
 
-function createWindow() {
-    // Create a proper icon for the app
-    const appIcon = nativeImage.createFromPath(path.join(__dirname, 'images', 'logo.png'));
-
-    // If icon file doesn't exist, create a fallback
-    if (appIcon.isEmpty()) {
-        console.warn('App icon not found at images/logo.png, using fallback');
-        // Create a simple fallback icon
-        const fallbackIcon = nativeImage.createFromBuffer(Buffer.from(`
-            <svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="32" cy="32" r="28" fill="#3b82f6"/>
-                <text x="32" y="40" text-anchor="middle" fill="white" font-family="Arial" font-size="20">B</text>
-            </svg>
-        `));
+// Server management
+function startPythonServer() {
+    const serverPath = path.join(__dirname, PATHS.server);
+    try {
+        serverProcess = execFile(serverPath, (error, stdout, stderr) => {
+            if (error) console.error('Server error:', error);
+            if (stdout) console.log(stdout.toString());
+            if (stderr) console.error(stderr.toString());
+        });
+        console.log('Python server started at', serverPath);
+    } catch (e) {
+        console.error('Failed to start Python server:', e);
     }
+}
+
+function stopPythonServer() {
+    if (serverProcess) {
+        try {
+            serverProcess.kill('SIGTERM');
+            console.log('Python server stopped');
+        } catch (e) {
+            console.error('Error stopping Python server:', e);
+        }
+        serverProcess = null;
+    }
+}
+
+// Icon management
+function createAppIcon() {
+    try {
+        const iconPath = path.join(__dirname, PATHS.images.logo);
+        let icon = nativeImage.createFromPath(iconPath);
+
+        if (icon.isEmpty()) {
+            console.warn('App icon not found at', PATHS.images.logo, ', using fallback icon');
+            icon = nativeImage.createFromBuffer(Buffer.from(SVG_ICONS.fallbackApp));
+        }
+
+        return icon;
+    } catch (e) {
+        console.warn('Failed to create app icon:', e);
+        return nativeImage.createFromBuffer(Buffer.from(SVG_ICONS.fallbackApp));
+    }
+}
+
+function createNotificationIcon() {
+    try {
+        const iconPath = path.join(__dirname, PATHS.images.logo);
+        let icon = nativeImage.createFromPath(iconPath);
+
+        if (icon.isEmpty()) {
+            icon = nativeImage.createFromBuffer(Buffer.from(SVG_ICONS.fallbackNotification));
+        }
+
+        return icon;
+    } catch (error) {
+        try {
+            return nativeImage.createFromBuffer(Buffer.from(SVG_ICONS.fallbackNotification));
+        } catch (e) {
+            return undefined;
+        }
+    }
+}
+
+function createTrayIcon() {
+    try {
+        const iconPath = path.join(__dirname, PATHS.images.logo);
+        let trayIcon = nativeImage.createFromPath(iconPath);
+        trayIcon = trayIcon.resize(TRAY_CONFIG.iconSize);
+        return trayIcon;
+    } catch (error) {
+        console.warn('Could not load tray icon, using fallback', error);
+        return nativeImage.createFromBuffer(Buffer.from(SVG_ICONS.fallbackTray));
+    }
+}
+
+// Window management
+function createWindow() {
+    const appIcon = createAppIcon();
 
     mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 800,
-        title: 'Birdy - AI Posture & Gesture Control',
-        frame: false, // Borderless
-        transparent: true, // Transparent background
+        width: WINDOW_CONFIG.splash.width,
+        height: WINDOW_CONFIG.splash.height,
+        title: `${APP_CONFIG.name} - AI Posture & Gesture Control`,
+        frame: false,
+        transparent: true,
         backgroundColor: '#00000000',
-        icon: appIcon, // Set window icon
+        roundedCorners: true,
+        icon: appIcon,
         webPreferences: {
-            nodeIntegration: true, // Enable Node integration for IPC
-            contextIsolation: false, // Disable context isolation for simpler IPC
-            backgroundThrottling: false, // CRITICAL: Allows ML to run in background
-            webSecurity: false, // Allow loading external resources (CDN) from file://
+            nodeIntegration: true,
+            contextIsolation: false,
+            backgroundThrottling: false,
             devTools: true
         }
     });
 
-    mainWindow.loadFile('index.html');
+    // Initialize stored normal bounds
+    normalBounds = {
+        width: WINDOW_CONFIG.normal.width,
+        height: WINDOW_CONFIG.normal.height,
+        x: undefined,
+        y: undefined
+    };
 
-    // Set window title explicitly
-    mainWindow.setTitle('Birdy - AI Posture & Gesture Control');
+    // Load UI - start with splash screen
+    mainWindow.loadFile('splash.html');
+    mainWindow.setTitle(`${APP_CONFIG.name} - AI Posture & Gesture Control`);
 
-    // Pipe renderer console logs to terminal
+    // Resize to main app size after splash delay
+    setTimeout(() => {
+        if (mainWindow) {
+            mainWindow.setSize(WINDOW_CONFIG.normal.width, WINDOW_CONFIG.normal.height);
+            mainWindow.center();
+            // Update normalBounds with new centered position
+            try {
+                const bounds = mainWindow.getBounds();
+                normalBounds.x = bounds.x;
+                normalBounds.y = bounds.y;
+            } catch (e) { /* ignore */ }
+        }
+    }, TIMING_CONFIG.splashDelay);
+
+    // Forward renderer console logs to main process console
     mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
         console.log(`[Renderer]: ${message} (${sourceId}:${line})`);
     });
 
-    // IPC Handlers for Window Controls
+    setupWindowControls();
+    setupNotificationHandler();
+    setupCompactModeHandler();
+    setupWindowEvents();
+}
+
+function setupWindowControls() {
+    // IPC window controls
     ipcMain.on('window-minimize', () => mainWindow.minimize());
+
     ipcMain.on('window-maximize', () => {
         if (mainWindow.isMaximized()) {
             mainWindow.unmaximize();
@@ -85,140 +264,231 @@ function createWindow() {
             mainWindow.maximize();
         }
     });
+
     ipcMain.on('window-close', () => {
         if (!app.isQuitting) {
             mainWindow.hide();
-            if (process.platform === 'win32') {
-                tray.displayBalloon({
-                    title: 'Birdy',
-                    content: 'App is running in the background.'
-                });
+            if (process.platform === 'win32' && tray) {
+                try {
+                    tray.displayBalloon(NOTIFICATION_CONFIG.balloon);
+                } catch (e) { /* displayBalloon may fail on some Windows versions, ignore */ }
             }
         } else {
             mainWindow.close();
         }
     });
+}
 
-    // IPC Handlers for Notification Actions - IMPROVED FOR WINDOWS 11
+function setupNotificationHandler() {
     ipcMain.on('show-posture-notification', (event, message) => {
         if (Notification.isSupported()) {
-            // Try to load notification icon
-            let notificationIcon;
-            try {
-                notificationIcon = nativeImage.createFromPath(path.join(__dirname, 'images', 'logo.png'));
-                if (notificationIcon.isEmpty()) {
-                    // Create fallback icon if file doesn't exist
-                    notificationIcon = nativeImage.createFromBuffer(Buffer.from(`
-                        <svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="32" cy="32" r="30" fill="#3b82f6"/>
-                            <text x="32" y="42" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">B</text>
-                        </svg>
-                    `));
-                }
-            } catch (error) {
-                console.warn('Could not load notification icon:', error);
-                // Use built-in fallback
-                notificationIcon = nativeImage.createFromDataURL('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiMzYjgyZjYiLz48dGV4dCB4PSIzMiIgeT0iNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIj5CPC90ZXh0Pjwvc3ZnPg==');
-            }
+            const notificationIcon = createNotificationIcon();
 
             const notification = new Notification({
-                title: 'Birdy - Posture Alert',
+                title: NOTIFICATION_CONFIG.title,
                 body: message,
                 icon: notificationIcon,
                 urgency: 'normal',
-                timeoutType: 'default' // Use 'default' instead of 'never' for better Windows compatibility
+                timeoutType: 'default'
             });
 
             notification.on('click', () => {
-                mainWindow.show();
-                mainWindow.focus();
-                // Send action to renderer
-                mainWindow.webContents.send('notification-action', 'show');
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                    mainWindow.webContents.send('notification-action', 'show');
+                }
             });
 
-            // Note: Windows 11 has limited support for notification actions
-            // The actions array may not work consistently across Windows versions
-
             notification.show();
-
-            // Also log to console for debugging
             console.log('Notification sent:', message);
         } else {
             console.warn('Notifications not supported on this system');
         }
     });
 
-    // Handle notification actions from renderer
     ipcMain.on('notification-action', (event, action) => {
         console.log('Notification action received:', action);
-        // Forward to renderer process
-        mainWindow.webContents.send('notification-action', action);
+        if (mainWindow) mainWindow.webContents.send('notification-action', action);
     });
+}
 
-    // IPC Handler for Compact Mode Toggle
-    let isCompactMode = false;
+function setupCompactModeHandler() {
     ipcMain.on('toggle-compact-mode', (event, compact) => {
-        isCompactMode = compact;
+        isCompactMode = !!compact;
 
-        if (compact) {
-            // Compact mode: vertical widget style, always on top
-            mainWindow.setSize(320, 480);
-            mainWindow.setAlwaysOnTop(true);
-            mainWindow.center();
+        if (!mainWindow) return;
+
+        if (isCompactMode) {
+            enterCompactMode();
         } else {
-            // Full mode: larger window, not always on top
-            mainWindow.setSize(1280, 800);
-            mainWindow.setAlwaysOnTop(false);
-            mainWindow.center();
+            exitCompactMode();
         }
     });
+}
 
+function enterCompactMode() {
+    // Save the current full bounds BEFORE shrinking
+    try {
+        const bounds = mainWindow.getBounds();
+        normalBounds = {
+            width: bounds.width,
+            height: bounds.height,
+            x: bounds.x,
+            y: bounds.y
+        };
+    } catch (e) {
+        // Keep existing normalBounds if getBounds fails
+    }
+
+    // Calculate target bounds for compact mode
+    const targetBounds = calculateCompactBounds();
+
+    // Apply compact bounds
+    mainWindow.setBounds(targetBounds, true);
+    mainWindow.setAlwaysOnTop(true, 'floating');
+    mainWindow.show();
+    mainWindow.focus();
+}
+
+function exitCompactMode() {
+    // Save current compact position/size
+    try {
+        const bounds = mainWindow.getBounds();
+        compactBounds = {
+            width: bounds.width,
+            height: bounds.height,
+            x: bounds.x,
+            y: bounds.y
+        };
+    } catch (e) {
+        // ignore
+    }
+
+    // Restore normal bounds
+    const targetBounds = calculateNormalBounds();
+
+    if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
+        mainWindow.setSize(targetBounds.width, targetBounds.height);
+        mainWindow.center();
+    } else {
+        mainWindow.setBounds(targetBounds, true);
+    }
+
+    mainWindow.setAlwaysOnTop(false);
+    mainWindow.show();
+    mainWindow.focus();
+}
+
+function calculateCompactBounds() {
+    if (compactBounds && compactBounds.width && compactBounds.height && typeof compactBounds.x !== 'undefined') {
+        return { ...compactBounds };
+    } else {
+        // Center default compact size
+        const display = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = display.workAreaSize;
+        const width = WINDOW_CONFIG.compact.width;
+        const height = WINDOW_CONFIG.compact.height;
+        const x = Math.round((screenWidth - width) / 2) + display.workArea.x;
+        const y = Math.round((screenHeight - height) / 2) + display.workArea.y;
+        const calculatedBounds = { width, height, x, y };
+        compactBounds = { ...calculatedBounds };
+        return calculatedBounds;
+    }
+}
+
+function calculateNormalBounds() {
+    return {
+        width: normalBounds.width || WINDOW_CONFIG.normal.width,
+        height: normalBounds.height || WINDOW_CONFIG.normal.height,
+        x: typeof normalBounds.x !== 'undefined' ? normalBounds.x : undefined,
+        y: typeof normalBounds.y !== 'undefined' ? normalBounds.y : undefined
+    };
+}
+
+function setupWindowEvents() {
+    // When restored from minimized: reapply mode-specific bounds
+    mainWindow.on('restore', () => {
+        reapplyWindowBounds();
+    });
+
+    // When showing (e.g. from tray) ensure proper size/position for current mode
+    mainWindow.on('show', () => {
+        reapplyWindowBounds();
+    });
+
+    // Keep track of bounds when user moves/resizes
+    mainWindow.on('move', () => {
+        updateStoredBounds();
+    });
+
+    mainWindow.on('resize', () => {
+        updateStoredBounds();
+    });
+
+    // Prevent window from closing (hide to tray instead) unless quitting
     mainWindow.on('close', (event) => {
         if (!app.isQuitting) {
             event.preventDefault();
             mainWindow.hide();
-            if (process.platform === 'win32') {
-                tray.displayBalloon({
-                    title: 'Birdy',
-                    content: 'App is running in the background.'
-                });
+            if (process.platform === 'win32' && tray) {
+                try {
+                    tray.displayBalloon(NOTIFICATION_CONFIG.balloon);
+                } catch (e) { /* ignore */ }
             }
         }
-        return false;
     });
 }
 
-function createTray() {
-    // Try to load tray icon from file
-    let trayIcon;
+function reapplyWindowBounds() {
+    if (!mainWindow) return;
+
     try {
-        trayIcon = nativeImage.createFromPath(path.join(__dirname, 'images', 'logo.png'));
-        // Resize for tray (16x16 or 32x32)
-        trayIcon = trayIcon.resize({ width: 16, height: 16 });
-    } catch (error) {
-        console.warn('Could not load tray icon, using fallback');
-        // Fallback: create a simple blue circle with B
-        trayIcon = nativeImage.createFromBuffer(Buffer.from(`
-            <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="7" fill="#3b82f6"/>
-                <text x="8" y="11" text-anchor="middle" fill="white" font-family="Arial" font-size="8" font-weight="bold">B</text>
-            </svg>
-        `));
+        if (isCompactMode && compactBounds && typeof compactBounds.width !== 'undefined') {
+            mainWindow.setBounds(compactBounds, true);
+            mainWindow.setAlwaysOnTop(true, 'floating');
+        } else if (!isCompactMode && normalBounds && typeof normalBounds.width !== 'undefined') {
+            const targetBounds = calculateNormalBounds();
+
+            if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
+                mainWindow.setSize(targetBounds.width, targetBounds.height);
+                mainWindow.center();
+            } else {
+                mainWindow.setBounds(targetBounds, true);
+            }
+            mainWindow.setAlwaysOnTop(false);
+        }
+    } catch (e) {
+        console.warn('Error reapplying bounds:', e);
     }
+}
+
+function updateStoredBounds() {
+    if (!mainWindow) return;
+
+    try {
+        const bounds = mainWindow.getBounds();
+        if (isCompactMode) {
+            compactBounds = { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y };
+        } else {
+            normalBounds = { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y };
+        }
+    } catch (e) { /* ignore */ }
+}
+
+// Tray management
+function createTray() {
+    const trayIcon = createTrayIcon();
 
     tray = new Tray(trayIcon);
-
     const contextMenu = Menu.buildFromTemplate([
         {
-            label: 'Show Birdy',
-            click: () => {
-                mainWindow.show();
-                mainWindow.focus();
-            }
+            label: `Show ${APP_CONFIG.name}`,
+            click: () => showMainWindow()
         },
         { type: 'separator' },
         {
-            label: 'Quit Birdy',
+            label: `Quit ${APP_CONFIG.name}`,
             click: () => {
                 app.isQuitting = true;
                 app.quit();
@@ -226,32 +496,50 @@ function createTray() {
         }
     ]);
 
-    tray.setToolTip('Birdy - AI Posture & Gesture Control');
+    tray.setToolTip(`${APP_CONFIG.name} - AI Posture & Gesture Control`);
     tray.setContextMenu(contextMenu);
 
+    // Single click toggles show/hide
     tray.on('click', () => {
+        if (!mainWindow) return;
+
         if (mainWindow.isVisible()) {
             mainWindow.hide();
         } else {
-            mainWindow.show();
-            mainWindow.focus();
+            showMainWindow();
         }
     });
 
-    // Double-click to show/hide
     tray.on('double-click', () => {
-        mainWindow.show();
-        mainWindow.focus();
+        if (!mainWindow) return;
+        showMainWindow();
     });
 }
 
-// Handle App Exit
-app.on('window-all-closed', () => {
-    // Do not quit when all windows are closed (keep running in tray)
-    if (process.platform !== 'darwin') {
-        // app.quit(); - Commented to keep app running in background
+function showMainWindow() {
+    if (!mainWindow) return;
+
+    try {
+        reapplyWindowBounds();
+        mainWindow.show();
+        mainWindow.focus();
+    } catch (e) {
+        console.warn('Error showing main window:', e);
     }
+}
+
+// Cleanup handlers
+app.on('before-quit', () => {
+    console.log('App is quitting, stopping Python server...');
+    stopPythonServer();
 });
 
-// Set app name before ready
-app.setName('Birdy');
+app.on('will-quit', () => {
+    stopPythonServer();
+});
+
+// Keep app running in background on non-macOS
+app.on('window-all-closed', () => {
+    // Don't quit the app, keep it running in tray
+    // Server will keep running until app actually quits
+});
