@@ -139,7 +139,7 @@ export function hideAlert() {
    Drawing helpers
    ========================= */
 export function drawSkeleton(pose) {
-    if (!pose || !pose.keypoints) return;
+    if (!pose || !pose.keypoints || !state.showSkeleton) return;
     const keypoints = pose.keypoints;
     ctx.fillStyle = '#3b82f6';
     ctx.strokeStyle = 'white';
@@ -180,6 +180,7 @@ export function drawSkeleton(pose) {
 }
 
 export function drawHands(landmarks) {
+    if (!state.showSkeleton) return;
     try {
         if (typeof drawConnectors !== 'undefined' && typeof drawLandmarks !== 'undefined' && typeof HAND_CONNECTIONS !== 'undefined') {
             drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });

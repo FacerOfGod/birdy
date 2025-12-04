@@ -60,5 +60,10 @@ export const state = {
     enableVolume: true,
     enableTap: true,
     enableTaskView: true,
+    enableSwipe: true,
+    enableVolume: true,
+    enableTap: true,
+    enableTaskView: true,
+    showSkeleton: true,
     snoozeUntil: 0
 };

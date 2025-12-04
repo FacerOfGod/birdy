@@ -91,23 +91,49 @@
                             </div>
                         </div>
                     </div>
-                    <div class="compact-toggles">
-                        <label class="compact-toggle">
-                            <input type="checkbox" id="compact-toggle-swipe" checked>
-                            <span>Swipe</span>
-                        </label>
-                        <label class="compact-toggle">
-                            <input type="checkbox" id="compact-toggle-volume" checked>
-                            <span>Volume</span>
-                        </label>
-                        <label class="compact-toggle">
-                            <input type="checkbox" id="compact-toggle-tap" checked>
-                            <span>Tap</span>
-                        </label>
-                        <label class="compact-toggle">
-                            <input type="checkbox" id="compact-toggle-taskview" checked>
-                            <span>Task View</span>
-                        </label>
+                    <div class="compact-settings-container">
+                        <button id="compact-settings-btn" class="compact-settings-dropdown-btn">⚙️ Settings</button>
+                        <div id="compact-settings-dropdown" class="compact-settings-dropdown">
+                            <div class="compact-setting-item">
+                                <label>Swipe Gestures <span
+                                        style="color: #fbbf24; font-size: 0.7em; font-weight: bold;">BETA</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="compact-toggle-swipe" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="compact-setting-item">
+                                <label>Volume Control <span
+                                        style="color: #fbbf24; font-size: 0.7em; font-weight: bold;">BETA</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="compact-toggle-volume" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="compact-setting-item">
+                                <label>Tap/Click <span
+                                        style="color: #fbbf24; font-size: 0.7em; font-weight: bold;">BETA</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="compact-toggle-tap" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="compact-setting-item">
+                                <label>Task View Gesture <span
+                                        style="color: #fbbf24; font-size: 0.7em; font-weight: bold;">BETA</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="compact-toggle-taskview" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="compact-setting-item">
+                                <label>Show Skeleton</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="compact-toggle-skeleton" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <button id="compact-calibrate-btn" class="compact-calibrate-btn">📏 Calibrate</button>
                 </div>
@@ -168,30 +194,41 @@
             </div>
             <div class="modal-body">
                 <div class="setting-item">
-                    <label>Swipe Gestures</label>
+                    <label>Swipe Gestures <span
+                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
                     <label class="switch">
                         <input type="checkbox" id="toggle-swipe" checked>
                         <span class="slider round"></span>
                     </label>
                 </div>
                 <div class="setting-item">
-                    <label>Volume Control</label>
+                    <label>Volume Control <span
+                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
                     <label class="switch">
                         <input type="checkbox" id="toggle-volume" checked>
                         <span class="slider round"></span>
                     </label>
                 </div>
                 <div class="setting-item">
-                    <label>Tap/Click</label>
+                    <label>Tap/Click <span
+                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
                     <label class="switch">
                         <input type="checkbox" id="toggle-tap" checked>
                         <span class="slider round"></span>
                     </label>
                 </div>
                 <div class="setting-item">
-                    <label>Task View Gesture</label>
+                    <label>Task View Gesture <span
+                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
                     <label class="switch">
                         <input type="checkbox" id="toggle-taskview" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>Show Skeleton</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-skeleton" checked>
                         <span class="slider round"></span>
                     </label>
                 </div>

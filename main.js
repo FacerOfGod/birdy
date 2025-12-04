@@ -19,9 +19,10 @@ const WINDOW_CONFIG = {
     },
     compact: {
         width: 220,
-        height: 480,
+        height: 300,
         minWidth: 220,
-        minHeight: 400
+        minHeight: 200,
+        maxHeight: 500
     },
     splash: {
         width: 500,
@@ -325,6 +326,53 @@ function setupCompactModeHandler() {
             exitCompactMode();
         }
     });
+
+    // Handle dynamic resizing of compact window
+    ipcMain.on('resize-compact-mode', (event, height) => {
+        if (!mainWindow || !isCompactMode) return;
+
+        try {
+            // Clamp height to reasonable bounds
+            const minHeight = WINDOW_CONFIG.compact.minHeight;
+            const maxHeight = WINDOW_CONFIG.compact.maxHeight;
+            const clampedHeight = Math.max(minHeight, Math.min(maxHeight, height));
+
+            const bounds = mainWindow.getBounds();
+            const currentWidth = bounds.width;
+
+            console.log(`[Main] Resizing compact window from ${bounds.height}px to ${clampedHeight}px (requested: ${height}px)`);
+
+            // Temporarily disable alwaysOnTop during resize (this is key!)
+            mainWindow.setAlwaysOnTop(false);
+
+            // Resize the window - use setBounds to maintain position
+            const newBounds = {
+                x: bounds.x,
+                y: bounds.y,
+                width: currentWidth,
+                height: clampedHeight
+            };
+            mainWindow.setBounds(newBounds, false); // false = no animation
+
+            // Re-enable alwaysOnTop
+            mainWindow.setAlwaysOnTop(true, 'floating');
+
+            // Update stored compact bounds
+            compactBounds = {
+                width: currentWidth,
+                height: clampedHeight,
+                x: bounds.x,
+                y: bounds.y
+            };
+
+            // Send confirmation back to renderer
+            event.sender.send('compact-resize-confirmed', clampedHeight);
+
+            console.log(`[Main] Window resized successfully to ${currentWidth}x${clampedHeight}`);
+        } catch (e) {
+            console.error('Failed to resize compact window:', e);
+        }
+    });
 }
 
 function enterCompactMode() {
@@ -349,6 +397,8 @@ function enterCompactMode() {
     mainWindow.setAlwaysOnTop(true, 'floating');
     mainWindow.show();
     mainWindow.focus();
+
+    console.log(`[Main] Entered compact mode at ${targetBounds.width}x${targetBounds.height}`);
 }
 
 function exitCompactMode() {
@@ -368,6 +418,8 @@ function exitCompactMode() {
     // Restore normal bounds
     const targetBounds = calculateNormalBounds();
 
+    mainWindow.setAlwaysOnTop(false); // Disable alwaysOnTop first
+
     if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
         mainWindow.setSize(targetBounds.width, targetBounds.height);
         mainWindow.center();
@@ -375,9 +427,10 @@ function exitCompactMode() {
         mainWindow.setBounds(targetBounds, true);
     }
 
-    mainWindow.setAlwaysOnTop(false);
     mainWindow.show();
     mainWindow.focus();
+
+    console.log(`[Main] Exited compact mode, restored to ${targetBounds.width}x${targetBounds.height}`);
 }
 
 function calculateCompactBounds() {
@@ -436,6 +489,8 @@ function setupWindowEvents() {
                     tray.displayBalloon(NOTIFICATION_CONFIG.balloon);
                 } catch (e) { /* ignore */ }
             }
+        } else {
+            mainWindow.close();
         }
     });
 }
@@ -445,9 +500,11 @@ function reapplyWindowBounds() {
 
     try {
         if (isCompactMode && compactBounds && typeof compactBounds.width !== 'undefined') {
-            mainWindow.setBounds(compactBounds, true);
             mainWindow.setAlwaysOnTop(true, 'floating');
+            mainWindow.setBounds(compactBounds, true);
+            console.log(`[Main] Reapplied compact bounds: ${compactBounds.width}x${compactBounds.height}`);
         } else if (!isCompactMode && normalBounds && typeof normalBounds.width !== 'undefined') {
+            mainWindow.setAlwaysOnTop(false);
             const targetBounds = calculateNormalBounds();
 
             if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
@@ -456,7 +513,7 @@ function reapplyWindowBounds() {
             } else {
                 mainWindow.setBounds(targetBounds, true);
             }
-            mainWindow.setAlwaysOnTop(false);
+            console.log(`[Main] Reapplied normal bounds: ${targetBounds.width}x${targetBounds.height}`);
         }
     } catch (e) {
         console.warn('Error reapplying bounds:', e);

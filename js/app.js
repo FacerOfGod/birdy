@@ -11,7 +11,8 @@ import { drawSkeleton, drawHands, video, canvas, ctx, statusBadge, calibrateBtn,
    ========================= */
 let rafId = null;
 let hiddenIntervalId = null;
-const HIDDEN_LOOP_INTERVAL = 100;
+const HIDDEN_LOOP_INTERVAL = 1000;
+const FRAME_SKIP = 3; // Process every 3rd frame to reduce CPU usage (~66% reduction)
 
 /* =========================
    Main processing
@@ -22,6 +23,10 @@ async function processVideo() {
     if (!state.isCameraReady) return;
 
     frameCounter++;
+
+    // Skip frames to reduce CPU usage - only process every 3rd frame
+    if (frameCounter % FRAME_SKIP !== 0) return;
+
     const isPostureFrame = frameCounter % 2 === 0;
 
     try {
@@ -125,16 +130,29 @@ async function init() {
         document.getElementById('btn-maximize')?.addEventListener('click', () => ipcRenderer.send('window-maximize'));
         document.getElementById('btn-close')?.addEventListener('click', () => ipcRenderer.send('window-close'));
 
-        // Settings Toggle
+        // Settings Modal
         const settingsModal = document.getElementById('settings-modal');
         document.getElementById('btn-settings')?.addEventListener('click', () => settingsModal.classList.remove('hidden'));
-        document.getElementById('btn-close-settings')?.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        document.getElementById('btn-close-settings')?.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+
+            // If in compact mode, also close compact settings and shrink window
+            if (isCompactMode) {
+                closeCompactSettings();
+            }
+        });
 
         // Gesture Toggles
         document.getElementById('toggle-swipe')?.addEventListener('change', (e) => state.enableSwipe = e.target.checked);
         document.getElementById('toggle-volume')?.addEventListener('change', (e) => state.enableVolume = e.target.checked);
         document.getElementById('toggle-tap')?.addEventListener('change', (e) => state.enableTap = e.target.checked);
         document.getElementById('toggle-taskview')?.addEventListener('change', (e) => state.enableTaskView = e.target.checked);
+
+        // Skeleton Toggle
+        document.getElementById('toggle-skeleton')?.addEventListener('change', (e) => {
+            state.showSkeleton = e.target.checked;
+            document.getElementById('compact-toggle-skeleton').checked = e.target.checked;
+        });
 
         // Notification Buttons
         document.getElementById('btn-recalibrate')?.addEventListener('click', () => {
@@ -154,7 +172,7 @@ async function init() {
         let isCompactMode = localStorage.getItem('compactMode') === 'true';
         const compactBtn = document.getElementById('btn-compact');
         const compactTimer = document.getElementById('compact-timer');
-
+        const COMPACT_BASE_HEIGHT = 300;
 
         // Restore compact mode on startup
         if (isCompactMode) {
@@ -168,6 +186,97 @@ async function init() {
             ipcRenderer.send('toggle-compact-mode', isCompactMode);
             localStorage.setItem('compactMode', isCompactMode);
             logCommand(isCompactMode ? 'Switched to compact mode' : 'Switched to full mode');
+
+            if (isCompactMode) {
+                resetCompactInactivityTimer();
+                // Ensure window resizes to base height when entering compact mode
+                ipcRenderer.send('resize-compact-mode', COMPACT_BASE_HEIGHT);
+            } else {
+                clearTimeout(compactInactivityTimer);
+                document.body.classList.remove('compact-transparent');
+                // Close compact settings if open
+                closeCompactSettings();
+            }
+        });
+
+        // Auto-transparency logic
+        let compactInactivityTimer;
+
+        function resetCompactInactivityTimer() {
+            if (!isCompactMode) return;
+
+            document.body.classList.remove('compact-transparent');
+            clearTimeout(compactInactivityTimer);
+
+            compactInactivityTimer = setTimeout(() => {
+                if (isCompactMode && !document.body.matches(':hover')) {
+                    document.body.classList.add('compact-transparent');
+                }
+            }, 3000); // 10 seconds
+        }
+
+        // Reset timer on user interaction
+        ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(event => {
+            document.addEventListener(event, resetCompactInactivityTimer);
+        });
+
+        // Initialize timer if starting in compact mode
+        if (isCompactMode) {
+            resetCompactInactivityTimer();
+        }
+
+        // Compact settings dropdown toggle
+        const compactSettingsBtn = document.getElementById('compact-settings-btn');
+        const compactSettingsDropdown = document.getElementById('compact-settings-dropdown');
+
+        function resizeCompactWindow(targetHeight) {
+            if (!isCompactMode) return;
+
+            console.log('[Renderer] Resizing compact window to:', targetHeight);
+            ipcRenderer.send('resize-compact-mode', targetHeight);
+        }
+
+        function closeCompactSettings() {
+            if (compactSettingsDropdown?.classList.contains('open')) {
+                compactSettingsDropdown.classList.remove('open');
+                compactSettingsBtn.classList.remove('active');
+                // Force shrink to base height
+                resizeCompactWindow(COMPACT_BASE_HEIGHT);
+
+                console.log('[Renderer] Closed compact settings, shrinking to base height');
+            }
+        }
+
+        compactSettingsBtn?.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering document click
+
+            if (compactSettingsDropdown?.classList.contains('open')) {
+                // Closing settings - shrink window back to initial size
+                closeCompactSettings();
+            } else {
+                // Opening settings - expand window
+                compactSettingsDropdown?.classList.add('open');
+                compactSettingsBtn.classList.add('active');
+
+                // Calculate dynamic height based on content
+                // Add a small buffer for borders/padding
+                const dropdownHeight = compactSettingsDropdown.scrollHeight + 10;
+                const expandedHeight = COMPACT_BASE_HEIGHT + dropdownHeight;
+
+                resizeCompactWindow(expandedHeight);
+                console.log('[Renderer] Opened compact settings, expanding to:', expandedHeight, '(Dropdown:', dropdownHeight, ')');
+            }
+        });
+
+        // Close settings when clicking outside
+        document.addEventListener('click', (e) => {
+            if (isCompactMode &&
+                compactSettingsDropdown?.classList.contains('open') &&
+                !compactSettingsDropdown.contains(e.target) &&
+                e.target !== compactSettingsBtn) {
+
+                closeCompactSettings();
+            }
         });
 
         // Compact mode controls - sync toggles with main settings
@@ -189,6 +298,11 @@ async function init() {
         document.getElementById('compact-toggle-taskview')?.addEventListener('change', (e) => {
             state.enableTaskView = e.target.checked;
             document.getElementById('toggle-taskview').checked = e.target.checked;
+        });
+
+        document.getElementById('compact-toggle-skeleton')?.addEventListener('change', (e) => {
+            state.showSkeleton = e.target.checked;
+            document.getElementById('toggle-skeleton').checked = e.target.checked;
         });
 
         document.getElementById('compact-calibrate-btn')?.addEventListener('click', () => {
@@ -215,6 +329,11 @@ async function init() {
             } else if (action === 'dismiss') {
                 logCommand('Notification dismissed');
             }
+        });
+
+        // Debug: Add IPC listener for resize confirmation
+        ipcRenderer.on('compact-resize-confirmed', (event, height) => {
+            console.log('[Renderer] Main process confirmed resize to:', height);
         });
 
         startLoop();
