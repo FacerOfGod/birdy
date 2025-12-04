@@ -55,6 +55,11 @@
     font-size: 2rem;
     font-weight: 700;
     color: var(--text-primary);
+    transition: color 2s ease;
+}
+
+.timer-display.bad-posture {
+    color: var(--danger-color);
 }
 
 .timer-subtext {

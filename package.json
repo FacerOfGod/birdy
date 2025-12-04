@@ -7,11 +7,11 @@
   "scripts": {
     "start": "electron ."
   },
-  "author": "Your Name",
+  "author": "Sylvain Pichot",
   "build": {
     "appId": "com.birdy.app",
     "productName": "Birdy",
-    "copyright": "Copyright © 2024",
+    "copyright": "Copyright © 2025",
     "directories": {
       "output": "dist"
     },
@@ -31,7 +31,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/images/logo.ico"
+      "icon": "assets/images/logo.png"
     },
     "nsis": {
       "oneClick": false,

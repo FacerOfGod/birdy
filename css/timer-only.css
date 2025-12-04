@@ -1,0 +1,133 @@
+/* Timer Only Mode Styles */
+
+/* Hide timer only controls by default */
+.timer-only-controls {
+    display: none;
+}
+
+/* Timer Only Mode Active */
+body.timer-only-mode .dashboard {
+    display: none !important;
+}
+
+body.timer-only-mode header {
+    display: none !important;
+}
+
+body.timer-only-mode .title-bar {
+    display: none !important;
+}
+
+body.timer-only-mode .compact-controls {
+    display: none !important;
+}
+
+body.timer-only-mode .video-container {
+    display: none !important;
+}
+
+/* Main layout restructure for timer only mode */
+body.timer-only-mode main {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100vh !important;
+    width: 100vw !important;
+    overflow: hidden !important;
+    background: transparent !important;
+}
+
+body.timer-only-mode .app-container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Show and style timer only controls */
+body.timer-only-mode .timer-only-controls {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(17, 24, 39, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    -webkit-app-region: drag !important;
+    /* Allow dragging */
+}
+
+.timer-only-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    padding: 5px !important;
+}
+
+.timer-only-display {
+    font-family: 'Courier New', monospace !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+    color: var(--success-color) !important;
+    margin-bottom: 5px !important;
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
+    transition: color 2s ease !important;
+}
+
+.timer-only-display.bad-posture {
+    color: var(--danger-color) !important;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.3) !important;
+}
+
+.timer-only-actions {
+    display: flex !important;
+    gap: 8px !important;
+    -webkit-app-region: no-drag !important;
+    /* Buttons must be clickable */
+}
+
+.timer-only-btn {
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.timer-only-btn:hover {
+    transform: scale(1.1) !important;
+}
+
+.timer-only-btn.start {
+    background: var(--success-color) !important;
+}
+
+.timer-only-btn.stop {
+    background: var(--danger-color) !important;
+}
+
+.timer-only-btn.restore {
+    background: var(--primary-color) !important;
+}
+
+.timer-only-btn.calibrate {
+    background: var(--accent-color) !important;
+}
+
+/* Transparency for inactive state */
+body.timer-only-mode.timer-only-transparent .timer-only-controls {
+    opacity: 0.3 !important;
+    transition: opacity 0.5s ease-in-out !important;
+}
+
+body.timer-only-mode.timer-only-transparent .timer-only-controls:hover {
+    opacity: 1 !important;
+}

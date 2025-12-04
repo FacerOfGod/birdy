@@ -147,3 +147,30 @@
     font-weight: 600;
     transition: background 0.2s;
 }
+
+/* Reset Pending State */
+.reset-pending {
+    background-color: #6b7280 !important;
+    /* Grey color */
+    transition: background-color 1s ease !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.reset-pending::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-100%);
+    animation: progress 1s linear forwards;
+}
+
+@keyframes progress {
+    to {
+        transform: translateX(0);
+    }
+}

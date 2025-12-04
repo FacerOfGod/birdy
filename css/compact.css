@@ -64,6 +64,11 @@ body.compact-mode .title-bar {
     border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
 }
 
+/* Hide App Title in Compact Mode (Keep Icon) */
+body.compact-mode .app-title {
+    display: none !important;
+}
+
 /* NEW: Timer container with buttons on the right */
 .timer-container {
     display: flex !important;
@@ -89,6 +94,11 @@ body.compact-mode .title-bar {
     color: var(--success-color) !important;
     flex: 1 !important;
     text-align: left !important;
+    transition: color 2s ease !important;
+}
+
+.compact-timer.bad-posture {
+    color: var(--danger-color) !important;
 }
 
 .compact-timer-controls {
@@ -102,211 +112,142 @@ body.compact-mode .title-bar {
     border: none !important;
     border-radius: 4px !important;
     padding: 6px 10px !important;
-    font-size: 12px !important;
+    font-size: 14px !important;
     cursor: pointer !important;
     transition: all 0.2s !important;
     color: white !important;
-    min-width: 40px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    opacity: 0.7 !important;
 }
 
-.compact-btn:disabled {
-    opacity: 0.4 !important;
-    cursor: not-allowed !important;
-}
-
-.compact-btn:hover:not(:disabled) {
-    opacity: 1 !important;
+.compact-btn:hover {
+    transform: scale(1.05) !important;
 }
 
 .compact-btn-start {
     background: var(--success-color) !important;
 }
 
-.compact-btn-start:hover:not(:disabled) {
-    background: #059669 !important;
-    transform: translateY(-1px) !important;
-}
-
 .compact-btn-stop {
     background: var(--danger-color) !important;
-}
-
-.compact-btn-stop:hover:not(:disabled) {
-    background: #dc2626 !important;
-    transform: translateY(-1px) !important;
-}
-
-/* Compact Settings Container */
-.compact-settings-container {
-    position: relative !important;
-    margin-bottom: clamp(10px, 2vh, 20px) !important;
 }
 
 /* Settings Dropdown Button */
 .compact-settings-dropdown-btn {
     width: 100% !important;
     background: rgba(255, 255, 255, 0.05) !important;
-    /* Somber/Neutral */
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: var(--text-primary) !important;
-    font-size: clamp(12px, 2vw, 14px) !important;
-    font-weight: 600 !important;
-    padding: clamp(10px, 2vw, 14px) !important;
-    border-radius: 8px !important;
+    color: var(--text-secondary) !important;
+    padding: 8px !important;
+    border-radius: 6px !important;
     cursor: pointer !important;
-    transition: all 0.2s !important;
+    text-align: left !important;
     display: flex !important;
-    align-items: center !important;
     justify-content: space-between !important;
-    gap: 6px !important;
+    align-items: center !important;
+    margin-bottom: 8px !important;
+    font-size: 0.9em !important;
+    transition: background 0.2s !important;
 }
 
 .compact-settings-dropdown-btn:hover {
     background: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-1px) !important;
+    color: var(--text-primary) !important;
 }
 
-/* Dropdown Arrow */
+.compact-settings-dropdown-btn.active {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-color: var(--accent-color) !important;
+    color: var(--accent-color) !important;
+}
+
 .compact-settings-dropdown-btn::after {
     content: '▼';
-    font-size: 10px;
-    opacity: 0.7;
-    transition: transform 0.3s ease;
+    font-size: 0.8em;
+    transition: transform 0.3s;
 }
 
-/* Rotate arrow when open */
 .compact-settings-dropdown-btn.active::after {
     transform: rotate(180deg);
 }
 
-/* Settings Dropdown Menu */
+/* Settings Dropdown Content */
 .compact-settings-dropdown {
-    display: none !important;
-    position: static !important;
-    margin-top: 10px !important;
-    background: var(--card-bg) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
-    box-shadow: none !important;
-    animation: slideDown 0.2s ease !important;
-    overflow: hidden !important;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .compact-settings-dropdown.open {
-    display: block !important;
+    display: flex;
+    animation: slideDown 0.2s ease-out;
 }
 
-/* Compact Setting Items */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .compact-setting-item {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 8px 12px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
 }
 
-.compact-setting-item:last-child {
-    border-bottom: none !important;
+.compact-setting-item label {
+    font-size: 0.85em;
+    color: var(--text-secondary);
 }
 
-.compact-setting-item label:first-child {
-    font-size: 12px !important;
-    color: var(--text-primary) !important;
-    flex: 1 !important;
-}
-
+/* Calibrate Button */
 .compact-calibrate-btn {
-    background: rgba(255, 255, 255, 0.05) !important;
-    /* Somber/Neutral */
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: var(--text-primary) !important;
-    font-size: clamp(12px, 2vw, 14px) !important;
-    font-weight: 600 !important;
-    padding: clamp(10px, 2vw, 14px) !important;
-    border-radius: 8px !important;
-    cursor: pointer !important;
-    transition: all 0.2s !important;
     width: 100% !important;
-    min-height: 40px !important;
+    background: var(--accent-color) !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    margin-top: auto !important;
+    transition: background 0.2s !important;
 }
 
 .compact-calibrate-btn:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-1px) !important;
+    background: #2563eb !important;
 }
 
-/* Toggle Switch Styles (Matching Main Window) */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    /* Slightly smaller for compact */
-    height: 20px;
+/* Transparent mode for compact window */
+body.compact-mode.compact-transparent .app-container {
+    background: rgba(31, 41, 55, 0.3) !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: none !important;
 }
 
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+body.compact-mode.compact-transparent .title-bar,
+body.compact-mode.compact-transparent .video-container,
+body.compact-mode.compact-transparent .compact-controls {
+    opacity: 0.3 !important;
+    transition: opacity 0.3s ease !important;
 }
 
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #4b5563;
-    transition: .4s;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-}
-
-input:checked+.slider {
-    background-color: var(--success-color);
-}
-
-input:focus+.slider {
-    box-shadow: 0 0 1px var(--success-color);
-}
-
-input:checked+.slider:before {
-    transform: translateX(20px);
-}
-
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
-/* Auto-transparency for inactive compact mode */
-body.compact-mode {
-    transition: opacity 0.5s ease;
-}
-
-body.compact-mode.compact-transparent {
-    opacity: 0.3;
-}
-
-body.compact-mode.compact-transparent:hover {
-    opacity: 1;
+body.compact-mode.compact-transparent:hover .title-bar,
+body.compact-mode.compact-transparent:hover .video-container,
+body.compact-mode.compact-transparent:hover .compact-controls {
+    opacity: 1 !important;
 }

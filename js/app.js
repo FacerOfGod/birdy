@@ -4,7 +4,7 @@ import { logCommand } from './utils.js';
 import { connectWebSocket } from './websocket.js';
 import { setupCamera, initDetectors } from './camera.js';
 import { analyzePosture, handleNoPerson, calibratePosture } from './posture.js';
-import { drawSkeleton, drawHands, video, canvas, ctx, statusBadge, calibrateBtn, timerDisplay, updateTimer, startTimer, stopTimer, updateTimerButtons, hideAlert } from './ui.js';
+import { drawSkeleton, drawHands, video, canvas, ctx, statusBadge, calibrateBtn, timerDisplay, updateTimer, startTimer, stopTimer, updateTimerButtons, hideAlert, resetTimer } from './ui.js';
 
 /* =========================
    Loop control
@@ -118,11 +118,55 @@ async function init() {
         // Event Listeners
         if (calibrateBtn) calibrateBtn.addEventListener('click', calibratePosture);
 
-        // Timer control buttons
-        document.getElementById('start-timer-btn')?.addEventListener('click', startTimer);
+        // Timer control buttons with long-press reset
+        const startBtns = [
+            document.getElementById('start-timer-btn'),
+            document.getElementById('compact-start-btn'),
+            document.getElementById('timer-only-start-btn')
+        ];
+
+        startBtns.forEach(btn => {
+            if (!btn) return;
+
+            let longPressTimer;
+            const originalText = btn.textContent;
+
+            btn.addEventListener('click', startTimer);
+
+            btn.addEventListener('mousedown', () => {
+                btn.classList.add('reset-pending');
+                if (btn.id === 'start-timer-btn') {
+                    btn.textContent = 'Reset...';
+                } else {
+                    btn.textContent = 'Reset';
+                    btn.style.fontSize = '10px';
+                }
+
+                longPressTimer = setTimeout(() => {
+                    resetTimer();
+                    btn.classList.remove('reset-pending');
+                    btn.textContent = originalText;
+                    if (btn.id !== 'start-timer-btn') btn.style.fontSize = '';
+                }, 1000);
+            });
+
+            const clearResetState = () => {
+                clearTimeout(longPressTimer);
+                btn.classList.remove('reset-pending');
+                btn.textContent = originalText;
+                if (btn.id !== 'start-timer-btn') btn.style.fontSize = '';
+            };
+
+            btn.addEventListener('mouseup', clearResetState);
+            btn.addEventListener('mouseleave', clearResetState);
+        });
+
         document.getElementById('stop-timer-btn')?.addEventListener('click', stopTimer);
-        document.getElementById('compact-start-btn')?.addEventListener('click', startTimer);
         document.getElementById('compact-stop-btn')?.addEventListener('click', stopTimer);
+        document.getElementById('timer-only-stop-btn')?.addEventListener('click', stopTimer);
+        document.getElementById('timer-only-calibrate-btn')?.addEventListener('click', () => {
+            calibratePosture();
+        });
 
         // Window Controls
         const { ipcRenderer } = require('electron');
@@ -136,7 +180,6 @@ async function init() {
         document.getElementById('btn-close-settings')?.addEventListener('click', () => {
             settingsModal.classList.add('hidden');
 
-            // If in compact mode, also close compact settings and shrink window
             if (isCompactMode) {
                 closeCompactSettings();
             }
@@ -161,7 +204,7 @@ async function init() {
         });
         document.getElementById('btn-snooze')?.addEventListener('click', () => {
             hideAlert();
-            state.snoozeUntil = Date.now() + 15 * 60 * 1000; // 15 minutes
+            state.snoozeUntil = Date.now() + 15 * 60 * 1000;
             logCommand('Notifications snoozed for 15m');
         });
         document.getElementById('btn-dismiss')?.addEventListener('click', () => {
@@ -170,8 +213,12 @@ async function init() {
 
         // Compact Mode Toggle
         let isCompactMode = localStorage.getItem('compactMode') === 'true';
+        let isTimerOnlyMode = false;
         const compactBtn = document.getElementById('btn-compact');
+        const timerOnlyBtn = document.getElementById('btn-timer-only');
+        const timerOnlyRestoreBtn = document.getElementById('timer-only-restore-btn');
         const compactTimer = document.getElementById('compact-timer');
+        const timerOnlyDisplay = document.getElementById('timer-only-display');
         const COMPACT_BASE_HEIGHT = 300;
 
         // Restore compact mode on startup
@@ -189,38 +236,55 @@ async function init() {
 
             if (isCompactMode) {
                 resetCompactInactivityTimer();
-                // Ensure window resizes to base height when entering compact mode
                 ipcRenderer.send('resize-compact-mode', COMPACT_BASE_HEIGHT);
             } else {
                 clearTimeout(compactInactivityTimer);
                 document.body.classList.remove('compact-transparent');
-                // Close compact settings if open
                 closeCompactSettings();
             }
+        });
+
+        // Timer Only Mode Logic
+        timerOnlyBtn?.addEventListener('click', () => {
+            isTimerOnlyMode = true;
+            document.body.classList.add('timer-only-mode');
+            ipcRenderer.send('toggle-timer-only-mode', true);
+            resetCompactInactivityTimer();
+            logCommand('Switched to Timer Only mode');
+        });
+
+        timerOnlyRestoreBtn?.addEventListener('click', () => {
+            isTimerOnlyMode = false;
+            document.body.classList.remove('timer-only-mode');
+            ipcRenderer.send('toggle-timer-only-mode', false);
+            logCommand('Restored from Timer Only mode');
         });
 
         // Auto-transparency logic
         let compactInactivityTimer;
 
         function resetCompactInactivityTimer() {
-            if (!isCompactMode) return;
+            if (!isCompactMode && !isTimerOnlyMode) return;
 
             document.body.classList.remove('compact-transparent');
+            document.body.classList.remove('timer-only-transparent');
             clearTimeout(compactInactivityTimer);
 
             compactInactivityTimer = setTimeout(() => {
-                if (isCompactMode && !document.body.matches(':hover')) {
-                    document.body.classList.add('compact-transparent');
+                if (!document.body.matches(':hover')) {
+                    if (isCompactMode && !isTimerOnlyMode) {
+                        document.body.classList.add('compact-transparent');
+                    } else if (isTimerOnlyMode) {
+                        document.body.classList.add('timer-only-transparent');
+                    }
                 }
-            }, 3000); // 10 seconds
+            }, 3000);
         }
 
-        // Reset timer on user interaction
         ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(event => {
             document.addEventListener(event, resetCompactInactivityTimer);
         });
 
-        // Initialize timer if starting in compact mode
         if (isCompactMode) {
             resetCompactInactivityTimer();
         }
@@ -230,8 +294,7 @@ async function init() {
         const compactSettingsDropdown = document.getElementById('compact-settings-dropdown');
 
         function resizeCompactWindow(targetHeight) {
-            if (!isCompactMode) return;
-
+            if (!isCompactMode || isTimerOnlyMode) return;
             console.log('[Renderer] Resizing compact window to:', targetHeight);
             ipcRenderer.send('resize-compact-mode', targetHeight);
         }
@@ -240,41 +303,33 @@ async function init() {
             if (compactSettingsDropdown?.classList.contains('open')) {
                 compactSettingsDropdown.classList.remove('open');
                 compactSettingsBtn.classList.remove('active');
-                // Force shrink to base height
                 resizeCompactWindow(COMPACT_BASE_HEIGHT);
-
                 console.log('[Renderer] Closed compact settings, shrinking to base height');
             }
         }
 
         compactSettingsBtn?.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering document click
+            e.stopPropagation();
 
             if (compactSettingsDropdown?.classList.contains('open')) {
-                // Closing settings - shrink window back to initial size
                 closeCompactSettings();
             } else {
-                // Opening settings - expand window
                 compactSettingsDropdown?.classList.add('open');
                 compactSettingsBtn.classList.add('active');
 
-                // Calculate dynamic height based on content
-                // Add a small buffer for borders/padding
                 const dropdownHeight = compactSettingsDropdown.scrollHeight + 10;
                 const expandedHeight = COMPACT_BASE_HEIGHT + dropdownHeight;
 
                 resizeCompactWindow(expandedHeight);
-                console.log('[Renderer] Opened compact settings, expanding to:', expandedHeight, '(Dropdown:', dropdownHeight, ')');
+                console.log('[Renderer] Opened compact settings, expanding to:', expandedHeight);
             }
         });
 
-        // Close settings when clicking outside
         document.addEventListener('click', (e) => {
             if (isCompactMode &&
                 compactSettingsDropdown?.classList.contains('open') &&
                 !compactSettingsDropdown.contains(e.target) &&
                 e.target !== compactSettingsBtn) {
-
                 closeCompactSettings();
             }
         });
@@ -309,14 +364,18 @@ async function init() {
             calibratePosture();
         });
 
-        // Update compact timer
-        if (compactTimer) {
-            setInterval(() => {
-                if (isCompactMode && timerDisplay) {
-                    compactTimer.textContent = timerDisplay.textContent;
+        // Update compact and timer-only timers
+        setInterval(() => {
+            if (timerDisplay) {
+                const currentTime = timerDisplay.textContent;
+                if (isCompactMode && compactTimer) {
+                    compactTimer.textContent = currentTime;
                 }
-            }, 1000);
-        }
+                if (isTimerOnlyMode && timerOnlyDisplay) {
+                    timerOnlyDisplay.textContent = currentTime;
+                }
+            }
+        }, 1000);
 
         // IPC Listener for Notification Actions
         ipcRenderer.on('notification-action', (event, action) => {
@@ -331,14 +390,13 @@ async function init() {
             }
         });
 
-        // Debug: Add IPC listener for resize confirmation
         ipcRenderer.on('compact-resize-confirmed', (event, height) => {
             console.log('[Renderer] Main process confirmed resize to:', height);
         });
 
         startLoop();
         setInterval(updateTimer, 1000);
-        updateTimerButtons(); // Initialize button states
+        updateTimerButtons();
 
         statusBadge.textContent = 'Ready';
         statusBadge.style.color = 'var(--success-color)';

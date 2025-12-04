@@ -24,6 +24,12 @@ const WINDOW_CONFIG = {
         minHeight: 200,
         maxHeight: 500
     },
+    timerOnly: {
+        width: 220,
+        height: 90,
+        minWidth: 150,
+        minHeight: 60
+    },
     splash: {
         width: 500,
         height: 700
@@ -79,6 +85,7 @@ let serverProcess;
 let mainWindow;
 let tray;
 let isCompactMode = false;
+let isTimerOnlyMode = false;
 let normalBounds = {
     width: WINDOW_CONFIG.normal.width,
     height: WINDOW_CONFIG.normal.height,
@@ -88,6 +95,12 @@ let normalBounds = {
 let compactBounds = {
     width: WINDOW_CONFIG.compact.width,
     height: WINDOW_CONFIG.compact.height,
+    x: undefined,
+    y: undefined
+};
+let timerOnlyBounds = {
+    width: WINDOW_CONFIG.timerOnly.width,
+    height: WINDOW_CONFIG.timerOnly.height,
     x: undefined,
     y: undefined
 };
@@ -317,6 +330,7 @@ function setupNotificationHandler() {
 function setupCompactModeHandler() {
     ipcMain.on('toggle-compact-mode', (event, compact) => {
         isCompactMode = !!compact;
+        isTimerOnlyMode = false; // Reset timer only mode when switching compact mode
 
         if (!mainWindow) return;
 
@@ -327,9 +341,21 @@ function setupCompactModeHandler() {
         }
     });
 
+    ipcMain.on('toggle-timer-only-mode', (event, timerOnly) => {
+        isTimerOnlyMode = !!timerOnly;
+
+        if (!mainWindow) return;
+
+        if (isTimerOnlyMode) {
+            enterTimerOnlyMode();
+        } else {
+            exitTimerOnlyMode();
+        }
+    });
+
     // Handle dynamic resizing of compact window
     ipcMain.on('resize-compact-mode', (event, height) => {
-        if (!mainWindow || !isCompactMode) return;
+        if (!mainWindow || !isCompactMode || isTimerOnlyMode) return;
 
         try {
             // Clamp height to reasonable bounds
@@ -355,7 +381,7 @@ function setupCompactModeHandler() {
             mainWindow.setBounds(newBounds, false); // false = no animation
 
             // Re-enable alwaysOnTop
-            mainWindow.setAlwaysOnTop(true, 'floating');
+            mainWindow.setAlwaysOnTop(true, 'screen-saver');
 
             // Update stored compact bounds
             compactBounds = {
@@ -394,7 +420,8 @@ function enterCompactMode() {
 
     // Apply compact bounds
     mainWindow.setBounds(targetBounds, true);
-    mainWindow.setAlwaysOnTop(true, 'floating');
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     mainWindow.show();
     mainWindow.focus();
 
@@ -419,6 +446,7 @@ function exitCompactMode() {
     const targetBounds = calculateNormalBounds();
 
     mainWindow.setAlwaysOnTop(false); // Disable alwaysOnTop first
+    mainWindow.setVisibleOnAllWorkspaces(false);
 
     if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
         mainWindow.setSize(targetBounds.width, targetBounds.height);
@@ -431,6 +459,62 @@ function exitCompactMode() {
     mainWindow.focus();
 
     console.log(`[Main] Exited compact mode, restored to ${targetBounds.width}x${targetBounds.height}`);
+}
+
+function enterTimerOnlyMode() {
+    // Save current bounds (could be normal or compact)
+    try {
+        const bounds = mainWindow.getBounds();
+        if (isCompactMode) {
+            compactBounds = { ...bounds };
+        } else {
+            normalBounds = { ...bounds };
+        }
+    } catch (e) { /* ignore */ }
+
+    // Calculate target bounds for timer only mode
+    const targetBounds = calculateTimerOnlyBounds();
+
+    // Apply timer only bounds
+    mainWindow.setBounds(targetBounds, true);
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    mainWindow.show();
+    mainWindow.focus();
+
+    console.log(`[Main] Entered timer only mode at ${targetBounds.width}x${targetBounds.height}`);
+}
+
+function exitTimerOnlyMode() {
+    // Save current timer only position
+    try {
+        const bounds = mainWindow.getBounds();
+        timerOnlyBounds = { ...bounds };
+    } catch (e) { /* ignore */ }
+
+    // Restore previous mode bounds
+    let targetBounds;
+    if (isCompactMode) {
+        targetBounds = calculateCompactBounds();
+        mainWindow.setAlwaysOnTop(true, 'screen-saver');
+        mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    } else {
+        targetBounds = calculateNormalBounds();
+        mainWindow.setAlwaysOnTop(false);
+        mainWindow.setVisibleOnAllWorkspaces(false);
+    }
+
+    if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
+        mainWindow.setSize(targetBounds.width, targetBounds.height);
+        mainWindow.center();
+    } else {
+        mainWindow.setBounds(targetBounds, true);
+    }
+
+    mainWindow.show();
+    mainWindow.focus();
+
+    console.log(`[Main] Exited timer only mode, restored to ${targetBounds.width}x${targetBounds.height}`);
 }
 
 function calculateCompactBounds() {
@@ -446,6 +530,36 @@ function calculateCompactBounds() {
         const y = Math.round((screenHeight - height) / 2) + display.workArea.y;
         const calculatedBounds = { width, height, x, y };
         compactBounds = { ...calculatedBounds };
+        return calculatedBounds;
+    }
+}
+
+function calculateTimerOnlyBounds() {
+    if (timerOnlyBounds && timerOnlyBounds.width && timerOnlyBounds.height && typeof timerOnlyBounds.x !== 'undefined') {
+        // Ensure bounds are within screen limits
+        const display = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = display.workAreaSize;
+
+        let x = timerOnlyBounds.x;
+        let y = timerOnlyBounds.y;
+
+        // Reset if off-screen
+        if (x < 0 || x > screenWidth || y < 0 || y > screenHeight) {
+            x = screenWidth - WINDOW_CONFIG.timerOnly.width - 20;
+            y = screenHeight - WINDOW_CONFIG.timerOnly.height - 20;
+        }
+
+        return { ...timerOnlyBounds, x, y };
+    } else {
+        // Position at bottom right by default
+        const display = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = display.workAreaSize;
+        const width = WINDOW_CONFIG.timerOnly.width;
+        const height = WINDOW_CONFIG.timerOnly.height;
+        const x = screenWidth - width - 20;
+        const y = screenHeight - height - 20;
+        const calculatedBounds = { width, height, x, y };
+        timerOnlyBounds = { ...calculatedBounds };
         return calculatedBounds;
     }
 }
@@ -499,12 +613,19 @@ function reapplyWindowBounds() {
     if (!mainWindow) return;
 
     try {
-        if (isCompactMode && compactBounds && typeof compactBounds.width !== 'undefined') {
-            mainWindow.setAlwaysOnTop(true, 'floating');
+        if (isTimerOnlyMode && timerOnlyBounds && typeof timerOnlyBounds.width !== 'undefined') {
+            mainWindow.setAlwaysOnTop(true, 'screen-saver');
+            mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+            mainWindow.setBounds(timerOnlyBounds, true);
+            console.log(`[Main] Reapplied timer only bounds: ${timerOnlyBounds.width}x${timerOnlyBounds.height}`);
+        } else if (isCompactMode && compactBounds && typeof compactBounds.width !== 'undefined') {
+            mainWindow.setAlwaysOnTop(true, 'screen-saver');
+            mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
             mainWindow.setBounds(compactBounds, true);
             console.log(`[Main] Reapplied compact bounds: ${compactBounds.width}x${compactBounds.height}`);
-        } else if (!isCompactMode && normalBounds && typeof normalBounds.width !== 'undefined') {
+        } else if (!isCompactMode && !isTimerOnlyMode && normalBounds && typeof normalBounds.width !== 'undefined') {
             mainWindow.setAlwaysOnTop(false);
+            mainWindow.setVisibleOnAllWorkspaces(false);
             const targetBounds = calculateNormalBounds();
 
             if (typeof targetBounds.x === 'undefined' || typeof targetBounds.y === 'undefined') {
@@ -525,7 +646,9 @@ function updateStoredBounds() {
 
     try {
         const bounds = mainWindow.getBounds();
-        if (isCompactMode) {
+        if (isTimerOnlyMode) {
+            timerOnlyBounds = { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y };
+        } else if (isCompactMode) {
             compactBounds = { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y };
         } else {
             normalBounds = { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y };

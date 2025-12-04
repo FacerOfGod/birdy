@@ -35,10 +35,24 @@
             <span class="app-title">Birdy</span>
         </div>
         <div class="window-controls">
+            <button id="btn-timer-only" class="control-btn" title="Timer Only Mode">⏱</button>
             <button id="btn-compact" class="control-btn" title="Toggle Compact Mode">⤢</button>
             <button id="btn-minimize" class="control-btn" title="Minimize">─</button>
             <button id="btn-maximize" class="control-btn" title="Maximize">□</button>
             <button id="btn-close" class="control-btn close-btn" title="Close">✕</button>
+        </div>
+    </div>
+
+    <!-- Timer Only Controls -->
+    <div class="timer-only-controls hidden">
+        <div class="timer-only-content">
+            <div id="timer-only-display" class="timer-only-display">00:00:00</div>
+            <div class="timer-only-actions">
+                <button id="timer-only-start-btn" class="timer-only-btn start" title="Start">▶</button>
+                <button id="timer-only-stop-btn" class="timer-only-btn stop" title="Stop">⏸</button>
+                <button id="timer-only-calibrate-btn" class="timer-only-btn calibrate" title="Calibrate">📏</button>
+                <button id="timer-only-restore-btn" class="timer-only-btn restore" title="Restore View">⤢</button>
+            </div>
         </div>
     </div>
 

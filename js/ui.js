@@ -40,6 +40,10 @@ export function updateGestureStatus(gesture, action) {
 
 export function updatePostureStatus(status, confidence) {
     state.currentPosture = status;
+
+    // Determine if posture is bad (not good, not unknown, not uncalibrated)
+    const isBadPosture = status !== 'Good Posture' && status !== 'Unknown' && status !== 'Uncalibrated';
+
     if (postureStatus) {
         postureStatus.textContent = status;
         postureStatus.style.color = status === 'Good Posture' ? 'var(--success-color)' :
@@ -50,6 +54,23 @@ export function updatePostureStatus(status, confidence) {
         confidenceBar.style.backgroundColor = status === 'Good Posture' ? 'var(--success-color)' :
             (status === 'Unknown' || status === 'Uncalibrated' ? 'var(--text-secondary)' : 'var(--danger-color)');
     }
+
+    // Update timer colors for bad posture feedback
+    const timerElements = [
+        timerDisplay,
+        document.getElementById('compact-timer'),
+        document.getElementById('timer-only-display')
+    ];
+
+    timerElements.forEach(el => {
+        if (el) {
+            if (isBadPosture) {
+                el.classList.add('bad-posture');
+            } else {
+                el.classList.remove('bad-posture');
+            }
+        }
+    });
 }
 
 export function sendNotification(title, body) {
@@ -101,6 +122,26 @@ export function stopTimer() {
         updateTimerButtons();
         logCommand('Timer stopped manually');
     }
+}
+
+export function resetTimer() {
+    state.isTimerRunning = false;
+    state.sittingStartTime = Date.now();
+    state.timerPausedTime = 0;
+
+    // Reset display
+    const timerElements = [
+        timerDisplay,
+        document.getElementById('compact-timer'),
+        document.getElementById('timer-only-display')
+    ];
+
+    timerElements.forEach(el => {
+        if (el) el.textContent = "00:00:00";
+    });
+
+    updateTimerButtons();
+    logCommand('Timer reset');
 }
 
 export function updateTimerButtons() {
