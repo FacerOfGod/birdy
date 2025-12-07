@@ -10,4 +10,6 @@
     --danger-color: #ef4444;
     --border-radius: 12px;
     --title-bar-height: 32px;
+    --primary-color: #3b82f6;
+    /* Added missing variable */
 }

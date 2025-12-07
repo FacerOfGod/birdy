@@ -62,8 +62,8 @@ export function handleUnknownPosture() {
 
     // Stop timer immediately if running
     if (state.isTimerRunning) {
-        stopTimer();
-        logCommand('Timer auto-stopped: posture unknown');
+        // stopTimer(); // Manual only now
+        // logCommand('Timer auto-stopped: posture unknown');
     }
 }
 
@@ -105,11 +105,17 @@ export function analyzePosture(pose) {
     const currentVerticalGapRatio = (shoulderMidY - earMidY) / shoulderWidth;
     const currentTiltRatio = Math.abs(leftShoulder.y - rightShoulder.y) / shoulderWidth;
 
-    const SLOUCH_TOLERANCE = 15;
-    const TILT_TOLERANCE = 5;
-    const DISTANCE_TOLERANCE = 15;
-    const HEIGHT_TOLERANCE = 10;
-    const STANDING_HEIGHT_THRESHOLD = 50; // Threshold to detect standing
+
+
+    const SLOUCH_TOLERANCE = state.postureTolerance / 100;
+    const TILT_TOLERANCE = 0.05;
+    const DISTANCE_TOLERANCE = state.postureTolerance / 100;
+    const HEIGHT_TOLERANCE = 10; // This is in pixels probably?
+    // 125:     } else if (nose.y > state.calibration.noseY + HEIGHT_TOLERANCE) {
+    // nose.y is pixels. So 10 pixels. 
+    // This seems fine.
+
+    const STANDING_HEIGHT_THRESHOLD = 50;
 
     let newPosture = 'Good Posture';
     let confidence = 100;
@@ -145,6 +151,8 @@ export function analyzePosture(pose) {
     const now = Date.now();
     const STANDING_DURATION_THRESHOLD = 2000; // 15 seconds
 
+    // Auto-timer logic REMOVED - Timer is now manual only
+    /*
     if (isUserStanding) {
         if (!state.isStanding) {
             // Just started standing
@@ -155,8 +163,8 @@ export function analyzePosture(pose) {
             // Check if standing for more than 15 seconds
             const standingDuration = now - state.standingStartTime;
             if (standingDuration > STANDING_DURATION_THRESHOLD && state.isTimerRunning) {
-                stopTimer();
-                logCommand('Timer auto-stopped: standing for 15+ seconds');
+                // stopTimer(); // Manual only now
+                // logCommand('Timer auto-stopped: standing for 15+ seconds');
             }
         }
     } else {
@@ -165,13 +173,25 @@ export function analyzePosture(pose) {
             state.isStanding = false;
             state.standingStartTime = null;
             if (!state.isTimerRunning) {
-                startTimer();
-                logCommand('Timer auto-started: user sat down');
+                // startTimer(); // Manual only now
+                // logCommand('Timer auto-started: user sat down');
             }
         }
     }
+    */
+    // Simplified state tracking for reference only
+    if (isUserStanding && !state.isStanding) {
+        state.isStanding = true;
+        state.standingStartTime = now;
+        logCommand('User stood up');
+    } else if (!isUserStanding && state.isStanding) {
+        state.isStanding = false;
+        state.standingStartTime = null;
+        logCommand('User sat down');
+    }
 
     updatePostureStatus(newPosture, confidence);
+    // Updated checkBadPostureDuration call is not needed if I update the function itself below.
     checkBadPostureDuration(newPosture);
 }
 
@@ -181,11 +201,18 @@ export function checkBadPostureDuration(status) {
         return;
     }
 
+    // Only alert if timer is running
+    if (!state.isTimerRunning) {
+        hideAlert();
+        state.badPostureStartTime = null;
+        return;
+    }
+
     if (status !== 'Good Posture' && status !== 'Unknown' && status !== 'Uncalibrated') {
         if (!state.badPostureStartTime) state.badPostureStartTime = Date.now();
         else {
             const duration = Date.now() - state.badPostureStartTime;
-            if (duration > CONFIG.thresholds.badPostureDuration) {
+            if (duration > state.badPostureDuration) {
                 showAlert(`Bad posture detected: ${status}`);
                 sendNotification(`Bad Posture: ${status}`, "Please sit up straight to match your calibrated pose.");
                 state.badPostureStartTime = Date.now() + 5000;

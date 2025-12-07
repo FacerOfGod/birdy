@@ -185,6 +185,11 @@
                         </div>
                     </div>
                     <div id="timer" class="timer-display">00:00:00</div>
+                    <div class="good-posture-stats" style="text-align: left; margin-top: 5px;">
+                        <span style="color: var(--text-secondary); font-size: 0.9em;">Good Posture:</span>
+                        <span id="good-posture-timer"
+                            style="color: var(--success-color); font-weight: bold; font-family: monospace; font-size: 1.1em;">00:00:00</span>
+                    </div>
                     <p id="timer-message" class="timer-subtext">Keep up the good work!</p>
                 </div>
 
@@ -206,45 +211,89 @@
                 <h2>Settings</h2>
                 <button id="btn-close-settings" class="btn-close">✕</button>
             </div>
+            <div class="modal-tabs">
+                <button class="tab-btn active" data-tab="general">General</button>
+                <button class="tab-btn" data-tab="posture">Posture</button>
+            </div>
             <div class="modal-body">
-                <div class="setting-item">
-                    <label>Swipe Gestures <span
-                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
-                    <label class="switch">
-                        <input type="checkbox" id="toggle-swipe" checked>
-                        <span class="slider round"></span>
-                    </label>
+                <div id="tab-general" class="tab-content active">
+                    <div class="setting-item">
+                        <label>Swipe Gestures <span
+                                style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-swipe" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Volume Control <span
+                                style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-volume" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Tap/Click <span
+                                style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-tap" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Task View Gesture <span
+                                style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-taskview" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Show Skeleton</label>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-skeleton" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+
                 </div>
-                <div class="setting-item">
-                    <label>Volume Control <span
-                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
-                    <label class="switch">
-                        <input type="checkbox" id="toggle-volume" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <label>Tap/Click <span
-                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
-                    <label class="switch">
-                        <input type="checkbox" id="toggle-tap" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <label>Task View Gesture <span
-                            style="color: #fbbf24; font-size: 0.75em; font-weight: bold;">BETA</span></label>
-                    <label class="switch">
-                        <input type="checkbox" id="toggle-taskview" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <label>Show Skeleton</label>
-                    <label class="switch">
-                        <input type="checkbox" id="toggle-skeleton" checked>
-                        <span class="slider round"></span>
-                    </label>
+                <div id="tab-posture" class="tab-content">
+                    <div class="setting-item">
+                        <label>Tolerance Level: <span id="value-tolerance">15</span></label>
+                        <input type="range" id="setting-tolerance" min="5" max="30" value="15" style="width: 100px;">
+                    </div>
+                    <div class="setting-info" style="font-size: 0.8em; color: #888; margin-bottom: 15px;">
+                        Higher = Less sensitivity to slouching/distance.
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Alert Delay: <span id="value-duration">10s</span></label>
+                        <input type="range" id="setting-duration" min="2000" max="30000" step="1000" value="10000"
+                            style="width: 100px;">
+                    </div>
+                    <div class="setting-info" style="font-size: 0.8em; color: #888;">
+                        Time before "Bad Posture" alert appears.
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Transparency Delay: <span id="value-transparency">3s</span></label>
+                        <input type="range" id="setting-transparency" min="1000" max="10000" step="1000" value="3000"
+                            style="width: 100px;">
+                    </div>
+                    <div class="setting-info" style="font-size: 0.8em; color: #888; margin-bottom: 10px;">
+                        Time before compact window fades out.
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Transparency Level: <span id="value-transparency-level">30%</span></label>
+                        <input type="range" id="setting-transparency-level" min="10" max="90" step="10" value="30"
+                            style="width: 100px;">
+                    </div>
+                    <div class="setting-info" style="font-size: 0.8em; color: #888; margin-bottom: 10px;">
+                        Opacity when transparent (lower = more transparent).
+                    </div>
                 </div>
             </div>
         </div>

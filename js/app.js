@@ -211,6 +211,59 @@ async function init() {
             hideAlert();
         });
 
+        // Initialize Posture Settings from LocalStorage
+        const storedTolerance = localStorage.getItem('postureTolerance');
+        if (storedTolerance) state.postureTolerance = parseInt(storedTolerance, 10);
+
+        const storedDuration = localStorage.getItem('badPostureDuration');
+        if (storedDuration) state.badPostureDuration = parseInt(storedDuration, 10);
+
+        // Settings Tabs Logic
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                // Add active class to clicked
+                btn.classList.add('active');
+                const tabId = `tab-${btn.dataset.tab}`;
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Posture Settings Inputs
+        const toleranceInput = document.getElementById('setting-tolerance');
+        const toleranceValue = document.getElementById('value-tolerance');
+        if (toleranceInput && toleranceValue) {
+            toleranceInput.value = state.postureTolerance;
+            toleranceValue.textContent = state.postureTolerance;
+
+            toleranceInput.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                state.postureTolerance = val;
+                toleranceValue.textContent = val;
+                localStorage.setItem('postureTolerance', val);
+            });
+        }
+
+        const durationInput = document.getElementById('setting-duration');
+        const durationValue = document.getElementById('value-duration');
+        if (durationInput && durationValue) {
+            durationInput.value = state.badPostureDuration;
+            durationValue.textContent = `${state.badPostureDuration / 1000}s`;
+
+            durationInput.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                state.badPostureDuration = val;
+                durationValue.textContent = `${val / 1000}s`;
+                localStorage.setItem('badPostureDuration', val);
+            });
+        }
+
         // Compact Mode Toggle
         let isCompactMode = localStorage.getItem('compactMode') === 'true';
         let isTimerOnlyMode = false;
@@ -260,6 +313,49 @@ async function init() {
             logCommand('Restored from Timer Only mode');
         });
 
+        // Initialize Transparency Settings
+        const storedTransparency = localStorage.getItem('transparencyTimeout');
+        if (storedTransparency) state.transparencyTimeout = parseInt(storedTransparency, 10);
+
+        const transparencyInput = document.getElementById('setting-transparency');
+        const transparencyValue = document.getElementById('value-transparency');
+        if (transparencyInput && transparencyValue) {
+            transparencyInput.value = state.transparencyTimeout;
+            transparencyValue.textContent = `${state.transparencyTimeout / 1000}s`;
+
+            transparencyInput.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                state.transparencyTimeout = val;
+                transparencyValue.textContent = `${val / 1000}s`;
+                localStorage.setItem('transparencyTimeout', val);
+                resetCompactInactivityTimer(); // Apply immediately
+            });
+        }
+
+        const transparencyLevelInput = document.getElementById('setting-transparency-level');
+        const transparencyLevelValue = document.getElementById('value-transparency-level');
+
+        // Initialize Transparency Level
+        const storedTransparencyLevel = localStorage.getItem('transparencyLevel');
+        if (storedTransparencyLevel) state.transparencyLevel = parseFloat(storedTransparencyLevel);
+
+        // Apply initial CSS variable
+        document.body.style.setProperty('--transparency-level', state.transparencyLevel);
+
+        if (transparencyLevelInput && transparencyLevelValue) {
+            const displayVal = Math.round(state.transparencyLevel * 100);
+            transparencyLevelInput.value = displayVal;
+            transparencyLevelValue.textContent = `${displayVal}%`;
+
+            transparencyLevelInput.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                state.transparencyLevel = val / 100.0;
+                transparencyLevelValue.textContent = `${val}%`;
+                localStorage.setItem('transparencyLevel', state.transparencyLevel);
+                document.body.style.setProperty('--transparency-level', state.transparencyLevel);
+            });
+        }
+
         // Auto-transparency logic
         let compactInactivityTimer;
 
@@ -278,7 +374,7 @@ async function init() {
                         document.body.classList.add('timer-only-transparent');
                     }
                 }
-            }, 3000);
+            }, state.transparencyTimeout);
         }
 
         ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(event => {

@@ -6,21 +6,23 @@ export const state = {
     handsDetector: null,
     isCameraReady: false,
     lastPersonDetectedTime: Date.now(),
-    sittingStartTime: Date.now(),
+    isDragging: false,
+
+    // Timer & Posture State
+    sittingStartTime: null,
     badPostureStartTime: null,
     currentPosture: 'Unknown',
     isAlertActive: false,
-
-    // Timer control state
-    isTimerRunning: true,
+    isTimerRunning: false,
     timerPausedTime: 0,
+    goodPostureTime: 0,
+    lastTimerUpdate: null,
     standingStartTime: null,
     isStanding: false,
     calibration: null,
     lastPose: null,
     lastHands: null,
     lastGesture: 'None',
-    isDragging: false,
     cursorX: 0.5,
     cursorY: 0.5,
     ws: null,
@@ -65,5 +67,12 @@ export const state = {
     enableTap: true,
     enableTaskView: true,
     showSkeleton: true,
-    snoozeUntil: 0
+    showSkeleton: true,
+    snoozeUntil: 0,
+    transparencyTimeout: 3000,
+    transparencyLevel: 0.3, // Default 30% opacity
+
+    // Posture Settings
+    postureTolerance: 15, // Default tolerance
+    badPostureDuration: 10000 // Default 10s
 };

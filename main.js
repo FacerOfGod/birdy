@@ -315,6 +315,7 @@ function setupNotificationHandler() {
             });
 
             notification.show();
+            if (mainWindow) mainWindow.flashFrame(true);
             console.log('Notification sent:', message);
         } else {
             console.warn('Notifications not supported on this system');

@@ -69,6 +69,11 @@ body.compact-mode .app-title {
     display: none !important;
 }
 
+/* Hide Maximize button in Compact Mode */
+body.compact-mode #btn-maximize {
+    display: none !important;
+}
+
 /* NEW: Timer container with buttons on the right */
 .timer-container {
     display: flex !important;
@@ -242,7 +247,7 @@ body.compact-mode.compact-transparent .app-container {
 body.compact-mode.compact-transparent .title-bar,
 body.compact-mode.compact-transparent .video-container,
 body.compact-mode.compact-transparent .compact-controls {
-    opacity: 0.3 !important;
+    opacity: var(--transparency-level, 0.3) !important;
     transition: opacity 0.3s ease !important;
 }
 

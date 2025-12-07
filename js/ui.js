@@ -20,6 +20,7 @@ export const alertOverlay = document.getElementById('alert-overlay');
 export const alertMessage = document.getElementById('alert-message');
 export const virtualCursor = document.getElementById('virtual-cursor');
 export const calibrateBtn = document.getElementById('calibrate-btn');
+export const goodPostureDisplay = document.getElementById('good-posture-timer');
 
 /* =========================
    UI Update Functions
@@ -88,6 +89,28 @@ export function updateTimer() {
         return;
     }
 
+    // Initialize lastTimerUpdate if null (first frame of running)
+    if (!state.lastTimerUpdate) {
+        state.lastTimerUpdate = now;
+    }
+
+    const delta = now - state.lastTimerUpdate;
+    state.lastTimerUpdate = now;
+
+    // Track Good Posture Time
+    if (state.currentPosture === 'Good Posture') {
+        state.goodPostureTime += delta;
+    }
+
+    // Update Good Posture Display
+    if (goodPostureDisplay) {
+        const gpDiff = state.goodPostureTime;
+        const gpHours = Math.floor(gpDiff / (1000 * 60 * 60));
+        const gpMinutes = Math.floor((gpDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const gpSeconds = Math.floor((gpDiff % (1000 * 60)) / 1000);
+        goodPostureDisplay.textContent = `${pad(gpHours)}:${pad(gpMinutes)}:${pad(gpSeconds)}`;
+    }
+
     if (now - state.lastPersonDetectedTime < CONFIG.thresholds.absenceTimeout) {
         const diff = now - state.sittingStartTime;
         const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -110,6 +133,7 @@ export function startTimer() {
         state.isTimerRunning = true;
         state.sittingStartTime = Date.now() - state.timerPausedTime;
         state.timerPausedTime = 0;
+        state.lastTimerUpdate = Date.now(); // Initialize delta tracking
         updateTimerButtons();
         logCommand('Timer started manually');
     }
@@ -128,6 +152,8 @@ export function resetTimer() {
     state.isTimerRunning = false;
     state.sittingStartTime = Date.now();
     state.timerPausedTime = 0;
+    state.goodPostureTime = 0;
+    state.lastTimerUpdate = null;
 
     // Reset display
     const timerElements = [
@@ -139,6 +165,8 @@ export function resetTimer() {
     timerElements.forEach(el => {
         if (el) el.textContent = "00:00:00";
     });
+
+    if (goodPostureDisplay) goodPostureDisplay.textContent = "00:00:00";
 
     updateTimerButtons();
     logCommand('Timer reset');
@@ -168,12 +196,36 @@ export function showAlert(msg) {
     if (alertMessage) alertMessage.textContent = msg;
     if (alertOverlay) alertOverlay.classList.remove('hidden');
     state.isAlertActive = true;
+    playNotificationSound();
 }
 
 export function hideAlert() {
     if (!state.isAlertActive) return;
     if (alertOverlay) alertOverlay.classList.add('hidden');
     state.isAlertActive = false;
+}
+
+function playNotificationSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.5); // Drop to A4
+
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (e) {
+        console.warn('Audio play failed:', e);
+    }
 }
 
 /* =========================
